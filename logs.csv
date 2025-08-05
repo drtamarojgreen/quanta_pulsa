@@ -1,0 +1,6 @@
+timestamp,responseId,latency,tokensUsed,response
+2023-10-27T10:00:00Z,resp-001,0.5,150,"This is the first response."
+2023-10-27T10:00:05Z,resp-002,0.7,200,"This is the second response."
+2023-10-27T10:00:10Z,resp-003,0.4,120,"This is a third one."
+2023-10-27T10:00:15Z,resp-004,1.2,300,"This response has higher latency."
+2023-10-27T10:00:20Z,resp-005,0.6,180,"Fifth response."
