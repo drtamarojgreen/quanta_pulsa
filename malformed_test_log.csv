@@ -1,0 +1,4 @@
+timestamp,responseId,latency,tokensUsed,response
+2023-10-27T10:00:00Z,resp-001,0.5,150,"A valid response."
+this is a malformed line
+2023-10-27T10:00:05Z,resp-002,0.7,200,"Another one."

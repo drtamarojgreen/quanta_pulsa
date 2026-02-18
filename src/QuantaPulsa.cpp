@@ -1,82 +1,81 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <numeric> // For std::accumulate
+#include <numeric>
+#include <iomanip>
+#include <fstream>
 #include "DataTypes.h"
 #include "LogParser.h"
+#include "CognitiveEngine.h"
+#include "TelemetryExporter.h"
 
-// --- Configuration for Alerting ---
-struct AlertThresholds {
-    double maxAverageLatency;
-    double minCoherenceScore;
-};
+void printMetrics(const COIMetrics& metrics) {
+    std::cout << "\n--- COI Metrics Update ---" << std::endl;
+    std::cout << std::fixed << std::setprecision(4);
+    std::cout << "CSI (Stability):          " << metrics.csi << std::endl;
+    std::cout << "DV (Drift Velocity):      " << metrics.dv << std::endl;
+    std::cout << "CCE (Calibration Error):  " << metrics.cce << std::endl;
+    std::cout << "SCS (Structural Coherence):" << metrics.scs << std::endl;
+    std::cout << "PRG (Reliability Gradient):" << metrics.prg << std::endl;
+    std::cout << "RIE (Risk of Irreversible Error): " << metrics.rie << std::endl;
+    std::cout << "-----------------------------------" << std::endl;
+    std::cout << "SYSTEM TRUST SCORE:       " << metrics.systemTrustScore << std::endl;
 
-// Function to calculate monitoring metrics from log entries
-MonitoringMetrics calculateMetrics(const std::vector<LogEntry>& entries) {
-    MonitoringMetrics metrics = {0.0, 0, 0.0};
-
-    if (entries.empty()) {
-        return metrics;
-    }
-
-    // Calculate total latency and tokens
-    double totalLatency = 0.0;
-    for (const auto& entry : entries) {
-        totalLatency += entry.latency;
-        metrics.totalTokensUsed += entry.tokensUsed;
-    }
-
-    // Calculate average latency
-    metrics.averageLatency = totalLatency / entries.size();
-
-    // Set a placeholder for coherence score
-    metrics.coherenceScore = 0.95; // Placeholder value
-
-    return metrics;
-}
-
-// Function to check for alerts
-void checkAlerts(const MonitoringMetrics& metrics, const AlertThresholds& thresholds) {
-    std::cout << "\n--- Checking for Alerts ---" << std::endl;
-    bool noAlerts = true;
-
-    if (metrics.averageLatency > thresholds.maxAverageLatency) {
-        std::cout << "ALERT: Average latency (" << metrics.averageLatency
-                  << "s) exceeds threshold of " << thresholds.maxAverageLatency << "s." << std::endl;
-        noAlerts = false;
-    }
-
-    if (metrics.coherenceScore < thresholds.minCoherenceScore) {
-        std::cout << "ALERT: Coherence score (" << metrics.coherenceScore
-                  << ") is below threshold of " << thresholds.minCoherenceScore << "." << std::endl;
-        noAlerts = false;
-    }
-
-    if (noAlerts) {
-        std::cout << "No alerts." << std::endl;
+    if (metrics.primaryFailureMode != FailureMode::NONE) {
+        std::cout << "!!! ALERT: FAILURE MODE DETECTED: ";
+        switch (metrics.primaryFailureMode) {
+            case FailureMode::HALLUCINATION_ESCALATION: std::cout << "Hallucination Escalation"; break;
+            case FailureMode::OVERCONFIDENCE_DRIFT: std::cout << "Overconfidence Drift"; break;
+            case FailureMode::COGNITIVE_THRASHING: std::cout << "Cognitive Thrashing"; break;
+            case FailureMode::DECISION_STAGNATION: std::cout << "Decision Stagnation"; break;
+            case FailureMode::STRUCTURAL_INCOHERENCE: std::cout << "Structural Incoherence"; break;
+            case FailureMode::CASCADING_INFERENCE_COLLAPSE: std::cout << "Cascading Inference Collapse"; break;
+            default: std::cout << "Unknown"; break;
+        }
+        std::cout << " !!!" << std::endl;
     }
 }
 
 int main() {
-    const std::string logFilePath = "logs.csv";
-    auto logEntries = LogParser::parseLogFile(logFilePath);
+    const std::string logFilePath = "scmi_logs.csv";
+    const std::string telemetryPath = "telemetry_stream.csv";
 
-    if (logEntries.empty()) {
-        std::cerr << "No log entries found. Exiting." << std::endl;
+    std::cout << "====================================================" << std::endl;
+    std::cout << "  QuantaPulsa: Cognitive Observability Infrastructure" << std::endl;
+    std::cout << "====================================================" << std::endl;
+
+    auto scmiEntries = LogParser::parseSCMILogFile(logFilePath);
+
+    if (scmiEntries.empty()) {
+        std::cerr << "[ERROR] No SCMI log entries found in " << logFilePath << std::endl;
+        std::cerr << "Ensure system exposes: {timestamp,origin,output,confidence,trace_hash,latency,state_hash}" << std::endl;
         return 1;
     }
 
-    MonitoringMetrics metrics = calculateMetrics(logEntries);
+    std::vector<SCMIEntry> history;
+    std::string lastHash = "genesis_block_integrity_root";
 
-    // --- Dashboard Output ---
-    std::cout << "--- Monitoring Metrics ---" << std::endl;
-    std::cout << "Average Latency: " << metrics.averageLatency << "s" << std::endl;
-    std::cout << "Total Tokens Used: " << metrics.totalTokensUsed << std::endl;
-    std::cout << "Coherence Score: " << metrics.coherenceScore << std::endl;
+    // Clear previous telemetry log for fresh run
+    std::ofstream clearFile(telemetryPath, std::ios::trunc);
+    clearFile.close();
 
-    // --- Alerting ---
-    AlertThresholds thresholds = {1.0, 0.9}; // Configure thresholds here
-    checkAlerts(metrics, thresholds);
+    for (const auto& entry : scmiEntries) {
+        history.push_back(entry);
+
+        // Compute Cognitive Observability Metrics
+        COIMetrics metrics = CognitiveEngine::computeMetrics(history);
+
+        // Generate and export tamper-resistant telemetry
+        CognitiveTelemetry telemetry = TelemetryExporter::generateTelemetry(entry, metrics, lastHash);
+        TelemetryExporter::exportTelemetry(telemetry, telemetryPath);
+        lastHash = telemetry.hash_chain;
+
+        // Output to Enterprise Dashboard
+        printMetrics(metrics);
+    }
+
+    std::cout << "\n[INFO] Audit-ready telemetry stream persisted to: " << telemetryPath << std::endl;
+    std::cout << "Status: Operational. All mission-critical metrics computed." << std::endl;
 
     return 0;
 }
