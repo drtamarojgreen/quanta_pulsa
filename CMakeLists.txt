@@ -4,7 +4,13 @@ project(QuantaPulsa)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(QuantaPulsa src/QuantaPulsa.cpp src/LogParser.cpp)
+add_executable(QuantaPulsa
+    src/QuantaPulsa.cpp
+    src/LogParser.cpp
+    src/CognitiveEngine.cpp
+    src/TelemetryExporter.cpp
+    src/LegacyMonitoring.cpp
+)
 
 target_include_directories(QuantaPulsa PRIVATE include)
 
@@ -44,6 +50,7 @@ gtest_add_tests(
 add_executable(
   runMonitoringTests
   tests/test_monitoring.cpp
+  src/LegacyMonitoring.cpp
 )
 
 target_include_directories(runMonitoringTests PRIVATE include)
@@ -72,4 +79,22 @@ target_link_libraries(
 
 gtest_add_tests(
   TARGET runAlertingTests
+)
+
+# --- Test Executable for CognitiveEngine ---
+add_executable(
+  runCognitiveEngineTests
+  tests/test_cognitive_engine.cpp
+  src/CognitiveEngine.cpp
+)
+
+target_include_directories(runCognitiveEngineTests PRIVATE include)
+
+target_link_libraries(
+  runCognitiveEngineTests
+  gtest_main
+)
+
+gtest_add_tests(
+  TARGET runCognitiveEngineTests
 )

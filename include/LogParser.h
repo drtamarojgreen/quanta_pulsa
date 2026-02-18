@@ -8,6 +8,7 @@
 class LogParser {
 public:
     static std::vector<LogEntry> parseLogFile(const std::string& filePath);
+    static std::vector<SCMIEntry> parseSCMILogFile(const std::string& filePath);
 };
 
 #endif // LOGPARSER_H
